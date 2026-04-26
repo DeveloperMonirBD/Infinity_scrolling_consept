@@ -38,10 +38,11 @@ Supports pagination via:
 
 #### 📦 State Management
 
-```jsx id="state-mg"
+```jsx 
 const [products, setProducts] = useState([]);
 const [page, setPage] = useState(0);
 const [hasMore, setHasMore] = useState(true);
+```
 
 ### 🔗 Loader Reference
 

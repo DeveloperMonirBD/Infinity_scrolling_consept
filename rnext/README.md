@@ -1,16 +1,152 @@
-# React + Vite
+## 🔍 Infinite Scroll Implementation (ProductList)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This project uses the **Intersection Observer API** to implement infinite scrolling in a clean and performant way.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+### 🧠 Core Concepts Used
 
-## React Compiler
+- `useState` → Manage products, pagination, and loading state
+- `useEffect` → Handle side effects (API calls + observer setup)
+- `useRef` → Reference the loader element
+- `IntersectionObserver` → Detect when user reaches bottom
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+### ⚙️ How It Works
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+1. Initial render → empty product list
+2. Loader element is observed using `IntersectionObserver`
+3. When loader becomes visible:
+   - API request is triggered
+   - New products are appended
+4. Process repeats until no more data
+
+---
+
+### 🌐 API Used
+
+👉 https://dummyjson.com/products
+
+Supports pagination via:
+- `limit` → number of items per request
+- `skip` → offset
+
+---
+
+### 🔑 Code Breakdown
+
+#### 📦 State Management
+
+```jsx id="state-mg"
+const [products, setProducts] = useState([]);
+const [page, setPage] = useState(0);
+const [hasMore, setHasMore] = useState(true);
+
+### 🔗 Loader Reference
+
+```JavaScript
+const loaderRef = useRef(null);
+```
+
+### 🌍 Fetch Products
+
+```JavaScript
+const fetchProducts = async () => {
+  const response = await fetch(
+    `https://dummyjson.com/products?limit=${productsPerPage}&skip=${page * productsPerPage}`
+  );
+
+  const data = await response.json();
+
+  if (data.products.length < productsPerPage) {
+    setHasMore(false);
+  } else {
+    setProducts(prev => [...prev, ...data.products]);
+    setPage(prev => prev + 1);
+  }
+};
+```
+
+### 👁️ Intersection Observer
+
+```JavaScript
+const onIntersection = (items) => {
+  const loaderItem = items[0];
+
+  if (loaderItem.isIntersecting && hasMore) {
+    fetchProducts();
+  }
+};
+
+const observer = new IntersectionObserver(onIntersection);
+```
+
+### 🔄 Observer Setup & Cleanup
+
+```JavaScript
+useEffect(() => {
+  if (observer && loaderRef.current) {
+    observer.observe(loaderRef.current);
+  }
+
+  return () => {
+    if (observer) observer.disconnect();
+  };
+}, [hasMore, page]);
+```
+
+### 🖼️ Rendering Products
+
+```JavaScript
+{products.map(product => (
+  <CardComponent
+    key={product.id}
+    title={product.title}
+    description={product.description}
+    image={product.thumbnail}
+    price={product.price}
+  />
+))}
+```
+
+### ⏳ Loader Element
+
+```JavaScript
+{hasMore && <div ref={loaderRef}>Loading more products ...</div>}
+```
+
+### ⚡ Why Intersection Observer?
+
+| Feature         | Scroll Event  | Intersection Observer |
+| --------------- | ------------- | --------------------- |
+| Performance     | ❌ Heavy       | ✅ Efficient           |
+| Accuracy        | ❌ Manual calc | ✅ Automatic           |
+| Code Complexity | ❌ Higher      | ✅ Cleaner             |
+
+
+### 🚀 Best Practices Applied
+
+- ✅ Lazy loading data
+- ✅ Avoid unnecessary API calls
+- ✅ Cleanup observer on unmount
+- ✅ Append data instead of replacing
+- ✅ Stop fetching when no more data
+
+### ⚠️ Possible Improvements (Interview Bonus)
+
+- Add loading spinner/skeleton UI
+- Add error handling (try/catch)
+- Debounce API calls
+- Use useCallback for fetch function
+- Add API caching
+
+### 💡 Interview Tip
+
+`If asked:`
+
+👉 "Why use `IntersectionObserver` instead of scroll?"
+
+Answer:
+
+It improves performance by avoiding continuous scroll event listeners and only triggers when the target element becomes visible in the viewport.
